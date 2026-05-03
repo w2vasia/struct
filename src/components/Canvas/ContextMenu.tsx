@@ -1,6 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useGraphStore } from "../../store/useGraphStore";
-import type { NodeType } from "../../types/nodes";
 
 interface ContextMenuProps {
   x: number;
@@ -46,19 +45,19 @@ export default function ContextMenu({
         x: node.position.x + 50,
         y: node.position.y + 50,
       };
-      addNode(node.data.type as NodeType, pos);
+      addNode(node.data.type, pos);
     }
     onClose();
   };
 
-  const handleCopy = () => {
+  const handleCopy = useCallback(() => {
     const { nodes } = useGraphStore.getState();
     const node = nodes.find((n) => n.id === nodeId);
     if (node) {
-      navigator.clipboard.writeText(JSON.stringify(node));
+      void navigator.clipboard.writeText(JSON.stringify(node));
     }
     onClose();
-  };
+  }, [nodeId, onClose]);
 
   const handleDelete = () => {
     const { selectNode, removeSelected } = useGraphStore.getState();

@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, type RefObject } from "react";
 import { useGraphStore } from "../../store/useGraphStore";
 import { autoLayout } from "../../lib/autoLayout";
 import { exportToPng, exportToSvg } from "../Export/exportToPng";
@@ -6,9 +6,9 @@ import type { StructNodeData } from "../../types/nodes";
 import type { Node } from "@xyflow/react";
 
 export default function Toolbar({
-  reactFlowEl,
+  reactFlowRef,
 }: {
-  reactFlowEl: HTMLDivElement | null;
+  reactFlowRef: RefObject<HTMLDivElement | null>;
 }) {
   const { nodes, edges, setNodes } = useGraphStore();
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -18,16 +18,16 @@ export default function Toolbar({
     setNodes(laidOut as Node<StructNodeData>[]);
   };
 
-  const handleExportPng = async () => {
-    if (reactFlowEl) {
-      await exportToPng(reactFlowEl);
+  const handleExportPng = () => {
+    if (reactFlowRef.current) {
+      void exportToPng(reactFlowRef.current);
     }
     setShowExportMenu(false);
   };
 
-  const handleExportSvg = async () => {
-    if (reactFlowEl) {
-      await exportToSvg(reactFlowEl);
+  const handleExportSvg = () => {
+    if (reactFlowRef.current) {
+      void exportToSvg(reactFlowRef.current);
     }
     setShowExportMenu(false);
   };

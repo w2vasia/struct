@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:ci": "pnpm lint && pnpm build",
+    "check": "pnpm lint && pnpm build && pnpm vitest run",
     "lint": "eslint .",
     "preview": "vite preview"
   },

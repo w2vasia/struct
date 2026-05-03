@@ -6,7 +6,7 @@ import Toolbar from "./components/Toolbar/Toolbar";
 import { useGraphStore } from "./store/useGraphStore";
 import { useHistoryStore } from "./store/useHistoryStore";
 import type { Node, Edge } from "@xyflow/react";
-import type { StructNodeData } from "./types/nodes";
+import type { StructNodeData, NodeType } from "./types/nodes";
 
 function App() {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -22,7 +22,7 @@ function App() {
       if (state) {
         useGraphStore.setState({
           nodes: state.nodes as Node<StructNodeData>[],
-          edges: state.edges as Edge[],
+          edges: state.edges,
         });
       }
     }
@@ -34,7 +34,7 @@ function App() {
       if (state) {
         useGraphStore.setState({
           nodes: state.nodes as Node<StructNodeData>[],
-          edges: state.edges as Edge[],
+          edges: state.edges,
         });
       }
     }
@@ -44,7 +44,7 @@ function App() {
       if (state) {
         useGraphStore.setState({
           nodes: state.nodes as Node<StructNodeData>[],
-          edges: state.edges as Edge[],
+          edges: state.edges,
         });
       }
     }
@@ -54,32 +54,33 @@ function App() {
       if (selectedNodeId) {
         const node = nodes.find((n) => n.id === selectedNodeId);
         if (node) {
-          navigator.clipboard.writeText(JSON.stringify(node));
+          void navigator.clipboard.writeText(JSON.stringify(node));
         }
       }
     }
 
     // Paste: Ctrl+V
     if ((e.ctrlKey || e.metaKey) && e.key === "v") {
-      navigator.clipboard
-        .readText()
-        .then((text) => {
-          try {
-            const data = JSON.parse(text);
-            if (data && data.data && data.data.type) {
-              const pos = {
-                x: (data.position?.x ?? 0) + 50,
-                y: (data.position?.y ?? 0) + 50,
-              };
-              addNode(data.data.type, pos);
-            }
-          } catch {
-            // ignore invalid clipboard content
+      const pasteNodeFromClipboard = async () => {
+        try {
+          const text = await navigator.clipboard.readText();
+          const data = JSON.parse(text) as Record<string, unknown>;
+          const nodeData = data?.data as Record<string, unknown> | undefined;
+          if (nodeData?.type && typeof nodeData.type === "string") {
+            const position = data?.position as
+              | Record<string, unknown>
+              | undefined;
+            const pos = {
+              x: ((position?.x as number) ?? 0) + 50,
+              y: ((position?.y as number) ?? 0) + 50,
+            };
+            addNode(nodeData.type as NodeType, pos);
           }
-        })
-        .catch(() => {
-          // ignore clipboard errors
-        });
+        } catch {
+          // ignore clipboard errors or invalid content
+        }
+      };
+      void pasteNodeFromClipboard();
     }
   }, []);
 
@@ -87,12 +88,18 @@ function App() {
   useEffect(() => {
     try {
       const hash = window.location.hash;
-      if (hash && hash.startsWith("#graph=")) {
+      if (hash?.startsWith("#graph=")) {
         const encoded = hash.slice(7);
         const decoded = atob(encoded);
-        const data = JSON.parse(decoded);
-        if (data.nodes && data.edges) {
-          useGraphStore.setState({ nodes: data.nodes, edges: data.edges });
+        const data = JSON.parse(decoded) as {
+          nodes: Node<StructNodeData>[];
+          edges: Record<string, unknown>[];
+        } | null;
+        if (data?.nodes && data?.edges) {
+          useGraphStore.setState({
+            nodes: data.nodes,
+            edges: data.edges as Edge[],
+          });
         }
       }
     } catch {
@@ -120,7 +127,7 @@ function App() {
 
       {/* Center: Toolbar + Canvas */}
       <div className="flex-1 flex flex-col min-w-0">
-        <Toolbar reactFlowEl={canvasRef.current} />
+        <Toolbar reactFlowRef={canvasRef} />
         <div ref={canvasRef} className="flex-1 relative">
           <StructCanvas />
         </div>

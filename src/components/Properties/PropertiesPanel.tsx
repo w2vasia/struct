@@ -22,7 +22,9 @@ export default function PropertiesPanel() {
           </label>
           <input
             type="text"
-            value={String(selectedEdge.label ?? "")}
+            value={
+              typeof selectedEdge.label === "string" ? selectedEdge.label : ""
+            }
             onChange={(e) => updateEdgeLabel(selectedEdge.id, e.target.value)}
             placeholder="Add a label..."
             className="w-full bg-[#0f172a] border border-[#334155] rounded-lg px-3 py-2

@@ -32,7 +32,10 @@ function loadFromStorage(): {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return null;
-    const data = JSON.parse(saved);
+    const data = JSON.parse(saved) as {
+      nodes: Node<StructNodeData>[];
+      edges: Edge[];
+    };
     if (data.nodes) {
       data.nodes = deduplicateNodes(data.nodes);
     }
@@ -73,9 +76,9 @@ interface GraphState {
 }
 
 function getInitialCounter(nodes: Node<StructNodeData>[]): number {
-  const ids = nodes.map((n) => n.id);
-  const maxNum = ids.reduce((max, id) => {
-    const match = id.match(/^node-(\d+)$/);
+  const nodeIdPattern = /^node-(\d+)$/;
+  const maxNum = nodes.reduce((max, node) => {
+    const match = nodeIdPattern.exec(node.id);
     if (match) {
       const num = parseInt(match[1], 10);
       return num > max ? num : max;
@@ -114,8 +117,8 @@ export const useGraphStore = create<GraphState>((set, get) => {
     onConnect: (connection: Connection) => {
       const edge: Edge = {
         id: `e-${connection.source}-${connection.target}`,
-        source: connection.source!,
-        target: connection.target!,
+        source: connection.source,
+        target: connection.target,
         sourceHandle: connection.sourceHandle ?? undefined,
         targetHandle: connection.targetHandle ?? undefined,
         type: "smoothstep",

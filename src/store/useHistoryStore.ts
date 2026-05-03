@@ -28,8 +28,8 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
       past: [
         ...state.past.slice(-MAX_HISTORY + 1),
         {
-          nodes: JSON.parse(JSON.stringify(nodes)),
-          edges: JSON.parse(JSON.stringify(edges)),
+          nodes: JSON.parse(JSON.stringify(nodes)) as Node[],
+          edges: JSON.parse(JSON.stringify(edges)) as Edge[],
         },
       ],
       future: [],
