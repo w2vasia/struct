@@ -10,10 +10,11 @@ export default function Toolbar({
 }: {
   reactFlowRef: RefObject<HTMLDivElement | null>;
 }) {
-  const { nodes, edges, setNodes } = useGraphStore();
+  const { nodes, edges } = useGraphStore();
   const [showExportMenu, setShowExportMenu] = useState(false);
 
   const handleLayout = () => {
+    const { nodes, edges, setNodes } = useGraphStore.getState();
     const laidOut = autoLayout(nodes, edges);
     setNodes(laidOut as Node<StructNodeData>[]);
   };
@@ -33,6 +34,7 @@ export default function Toolbar({
   };
 
   const handleShare = useCallback(() => {
+    const { nodes, edges } = useGraphStore.getState();
     const graphData = { nodes, edges };
     const encoded = btoa(JSON.stringify(graphData));
     const url = `${window.location.origin}${window.location.pathname}#graph=${encoded}`;
@@ -42,10 +44,9 @@ export default function Toolbar({
         alert("Share link copied to clipboard!");
       })
       .catch(() => {
-        // fallback: show the URL in the console
         console.log("Share URL:", url);
       });
-  }, [nodes, edges]);
+  }, []);
 
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[#334155] bg-[#0f172a]/50">

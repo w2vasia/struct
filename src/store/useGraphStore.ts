@@ -13,32 +13,49 @@ import type { StructNodeData, NodeType } from "../types/nodes";
 import { NODE_DEFINITIONS } from "../components/Palette/nodeDefinitions";
 
 const STORAGE_KEY = "struct-graph";
+const STORAGE_VERSION = 1;
+
+interface StorageData {
+  version: number;
+  nodes: Node<StructNodeData>[];
+  edges: Edge[];
+}
 
 function deduplicateNodes(
   nodes: Node<StructNodeData>[],
 ): Node<StructNodeData>[] {
   const seen = new Map<string, Node<StructNodeData>>();
   for (const node of nodes) {
-    // Keep the LAST occurrence of each ID
     seen.set(node.id, node);
   }
   return Array.from(seen.values());
 }
 
-function loadFromStorage(): {
-  nodes: Node<StructNodeData>[];
-  edges: Edge[];
-} | null {
+function migrateData(raw: Record<string, unknown>): StorageData | null {
+  const version = (raw.version as number) ?? 0;
+
+  if (version === 0) {
+    // v0: { nodes, edges } — same shape as v1
+    return {
+      version: STORAGE_VERSION,
+      nodes: (raw.nodes as Node<StructNodeData>[]) ?? [],
+      edges: (raw.edges as Edge[]) ?? [],
+    };
+  }
+  if (version === STORAGE_VERSION) {
+    return raw as unknown as StorageData;
+  }
+  return null;
+}
+
+function loadFromStorage(): StorageData | null {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (!saved) return null;
-    const data = JSON.parse(saved) as {
-      nodes: Node<StructNodeData>[];
-      edges: Edge[];
-    };
-    if (data.nodes) {
-      data.nodes = deduplicateNodes(data.nodes);
-    }
+    const raw = JSON.parse(saved) as Record<string, unknown>;
+    const data = migrateData(raw);
+    if (!data) return null;
+    data.nodes = deduplicateNodes(data.nodes);
     return data;
   } catch {
     return null;
@@ -47,7 +64,8 @@ function loadFromStorage(): {
 
 function saveToStorage(nodes: Node<StructNodeData>[], edges: Edge[]) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes, edges }));
+    const data: StorageData = { version: STORAGE_VERSION, nodes, edges };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
     // ignore
   }
