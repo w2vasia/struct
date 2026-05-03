@@ -1,5 +1,7 @@
 # Struct — System Design Visualizer
 
+[![CI](https://github.com/w2vasia/struct/actions/workflows/ci.yml/badge.svg)](https://github.com/w2vasia/struct/actions/workflows/ci.yml)
+
 **Struct** is an interactive web tool for creating system architecture diagrams. Drag typed components onto an infinite canvas, connect them with arrows, configure properties, and export the result as PNG or SVG.
 
 Built as a solo developer portfolio project.
