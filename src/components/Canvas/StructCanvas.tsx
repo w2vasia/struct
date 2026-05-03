@@ -22,6 +22,7 @@ export default function StructCanvas() {
     x: number;
     y: number;
     nodeId: string;
+    type: "node" | "edge";
   } | null>(null);
   const {
     nodes,
@@ -71,19 +72,39 @@ export default function StructCanvas() {
     [selectEdge],
   );
 
+  const onEdgeContextMenu = useCallback(
+    (event: React.MouseEvent, edge: { id: string }) => {
+      event.preventDefault();
+      selectEdge(edge.id);
+      setContextMenu({
+        x: event.clientX,
+        y: event.clientY,
+        nodeId: edge.id,
+        type: "edge",
+      });
+    },
+    [selectEdge],
+  );
+
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: { id: string }) => {
       event.preventDefault();
       selectNode(node.id);
-      setContextMenu({ x: event.clientX, y: event.clientY, nodeId: node.id });
+      setContextMenu({
+        x: event.clientX,
+        y: event.clientY,
+        nodeId: node.id,
+        type: "node",
+      });
     },
     [selectNode],
   );
 
   const onPaneClick = useCallback(() => {
     selectNode(null);
+    selectEdge(null);
     setContextMenu(null);
-  }, [selectNode]);
+  }, [selectNode, selectEdge]);
 
   return (
     <div ref={reactFlowWrapper} className="w-full h-full">
@@ -92,6 +113,7 @@ export default function StructCanvas() {
           x={contextMenu.x}
           y={contextMenu.y}
           nodeId={contextMenu.nodeId}
+          type={contextMenu.type}
           onClose={() => setContextMenu(null)}
         />
       )}
@@ -106,6 +128,7 @@ export default function StructCanvas() {
         onDragOver={onDragOver}
         onNodeClick={onNodeClick}
         onEdgeClick={onEdgeClick}
+        onEdgeContextMenu={onEdgeContextMenu}
         onNodeContextMenu={onNodeContextMenu}
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
@@ -116,7 +139,7 @@ export default function StructCanvas() {
         panOnDrag={[1, 2]}
         fitView
         colorMode="dark"
-        deleteKeyCode="Delete"
+        deleteKeyCode={["Delete", "Backspace"]}
         snapToGrid
         snapGrid={[20, 20]}
         connectOnClick={true}

@@ -16,8 +16,8 @@ function FrontendNode({ data, selected }: NodeProps<Node<StructNodeData>>) {
   return (
     <div
       className={`
-        rounded-xl border-2 px-4 py-3 min-w-[180px] transition-shadow
-        ${selected ? "shadow-lg shadow-cyan-500/20 ring-2 ring-cyan-400/50" : ""}
+        rounded-xl border-2 px-4 py-3 min-w-[180px] transition-all duration-200
+        ${selected ? "shadow-[0_0_20px_rgba(34,211,238,0.3)] ring-2 ring-cyan-400" : "shadow-none ring-0"}
       `}
       style={{
         borderColor: def?.color ?? "#22d3ee",

@@ -5,6 +5,7 @@ interface ContextMenuProps {
   x: number;
   y: number;
   nodeId: string;
+  type: "node" | "edge";
   onClose: () => void;
 }
 
@@ -12,6 +13,7 @@ export default function ContextMenu({
   x,
   y,
   nodeId,
+  type,
   onClose,
 }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -38,6 +40,7 @@ export default function ContextMenu({
   }, [onClose]);
 
   const handleDuplicate = () => {
+    if (type !== "node") return;
     const { nodes, addNode } = useGraphStore.getState();
     const node = nodes.find((n) => n.id === nodeId);
     if (node) {
@@ -51,17 +54,22 @@ export default function ContextMenu({
   };
 
   const handleCopy = useCallback(() => {
+    if (type !== "node") return;
     const { nodes } = useGraphStore.getState();
     const node = nodes.find((n) => n.id === nodeId);
     if (node) {
       void navigator.clipboard.writeText(JSON.stringify(node));
     }
     onClose();
-  }, [nodeId, onClose]);
+  }, [nodeId, onClose, type]);
 
   const handleDelete = () => {
-    const { selectNode, removeSelected } = useGraphStore.getState();
-    selectNode(nodeId);
+    const { selectNode, selectEdge, removeSelected } = useGraphStore.getState();
+    if (type === "node") {
+      selectNode(nodeId);
+    } else {
+      selectEdge(nodeId);
+    }
     removeSelected();
     onClose();
   };
@@ -72,19 +80,23 @@ export default function ContextMenu({
       className="fixed z-50 w-40 rounded-lg border border-[#334155] bg-[#0f172a] shadow-xl py-1"
       style={{ left: x, top: y }}
     >
-      <button
-        onClick={handleCopy}
-        className="w-full px-3 py-2 text-left text-sm text-[#cbd5e1] hover:bg-[#1e293b] transition-colors"
-      >
-        Copy
-      </button>
-      <button
-        onClick={handleDuplicate}
-        className="w-full px-3 py-2 text-left text-sm text-[#cbd5e1] hover:bg-[#1e293b] transition-colors"
-      >
-        Duplicate
-      </button>
-      <div className="h-px bg-[#334155] my-1" />
+      {type === "node" && (
+        <>
+          <button
+            onClick={handleCopy}
+            className="w-full px-3 py-2 text-left text-sm text-[#cbd5e1] hover:bg-[#1e293b] transition-colors"
+          >
+            Copy
+          </button>
+          <button
+            onClick={handleDuplicate}
+            className="w-full px-3 py-2 text-left text-sm text-[#cbd5e1] hover:bg-[#1e293b] transition-colors"
+          >
+            Duplicate
+          </button>
+          <div className="h-px bg-[#334155] my-1" />
+        </>
+      )}
       <button
         onClick={handleDelete}
         className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-[#1e293b] transition-colors"

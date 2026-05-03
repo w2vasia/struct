@@ -152,15 +152,21 @@ export const useGraphStore = create<GraphState>((set, get) => {
     },
 
     removeSelected: () => {
-      const { nodes, edges, selectedNodeId } = get();
-      if (!selectedNodeId) return;
-      wrappedSet({
-        nodes: nodes.filter((n) => n.id !== selectedNodeId),
-        edges: edges.filter(
-          (e) => e.source !== selectedNodeId && e.target !== selectedNodeId,
-        ),
-        selectedNodeId: null,
-      });
+      const { nodes, edges, selectedNodeId, selectedEdgeId } = get();
+      if (selectedNodeId) {
+        wrappedSet({
+          nodes: nodes.filter((n) => n.id !== selectedNodeId),
+          edges: edges.filter(
+            (e) => e.source !== selectedNodeId && e.target !== selectedNodeId,
+          ),
+          selectedNodeId: null,
+        });
+      } else if (selectedEdgeId) {
+        wrappedSet({
+          edges: edges.filter((e) => e.id !== selectedEdgeId),
+          selectedEdgeId: null,
+        });
+      }
     },
 
     updateEdgeLabel: (id: string, label: string) => {
