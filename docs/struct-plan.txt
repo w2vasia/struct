@@ -1,0 +1,579 @@
+# Struct — System Design Visualizer
+
+> **Архитектура приложения и детальный план реализации**
+> Версия: 1.0
+> Дата: 2026-05-03
+
+---
+
+## 1. Концепция
+
+**Struct** — это интерактивный веб-инструмент для создания диаграмм системной архитектуры. Пользователь перетаскивает типизированные компоненты (сервис, БД, очередь, API Gateway) на бесконечный холст, соединяет их стрелками, настраивает свойства и экспортирует результат в PNG/SVG.
+
+**Целевая аудитория:** разработчики, которые хотят быстро набросать архитектуру для документации, собеседований или презентаций.
+
+**Ключевое отличие от draw.io / Excalidraw:** типизированные блоки с визуальным языком под software architecture + auto-layout в один клик.
+
+---
+
+## 2. Архитектура приложения
+
+### 2.1. Высокоуровневая схема
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Struct App                             │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │                   Canvas (React Flow)               │    │
+│  │  ┌──────┐    ┌──────┐    ┌──────┐    ┌──────┐       │    │
+│  │  │Srvice│───>│  DB  │    │Queue │    │Front │       │    │
+│  │  └──────┘    └──────┘    └──────┘    └──────┘       │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+│  ┌──────────┐  ┌──────────────┐  ┌──────────────────────┐   │
+│  │ Palette  │  │  Properties  │  │  Toolbar             │   │
+│  │ (слева)  │  │  (справа)    │  │  [Layout] [Export]   │   │
+│  └──────────┘  └──────────────┘  └──────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │                   Store (Zustand)                   │    │
+│  │   nodes[] │ edges[] │ selectedNode │ history[]      │    │
+│  └─────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 2.2. Компонентная архитектура
+
+```
+src/
+├── App.tsx                          # Точка входа, layout
+├── main.tsx                         # Vite entry
+│
+├── components/
+│   ├── Canvas/
+│   │   ├── StructCanvas.tsx          # React Flow wrapper
+│   │   ├── CanvasControls.tsx        # Zoom controls, minimap
+│   │   └── Background.tsx            # Сетка
+│   │
+│   ├── Palette/
+│   │   ├── Palette.tsx               # Боковая панель слева
+│   │   ├── PaletteItem.tsx           # Один элемент в палитре
+│   │   └── nodeDefinitions.ts        # Определения всех типов нод
+│   │
+│   ├── Properties/
+│   │   ├── PropertiesPanel.tsx       # Панель свойств справа
+│   │   ├── NodeEditor.tsx            # Редактор выбранной ноды
+│   │   └── EdgeEditor.tsx            # Редактор выбранного соединения
+│   │
+│   ├── Toolbar/
+│   │   ├── Toolbar.tsx               # Верхняя панель
+│   │   ├── AutoLayoutButton.tsx      # Кнопка "Arrange"
+│   │   ├── ExportButton.tsx          # Кнопка экспорта
+│   │   ├── UndoRedoButtons.tsx       # Undo/Redo
+│   │   └── ZoomControls.tsx          # Zoom
+│   │
+│   └── Export/
+│       ├── ExportDialog.tsx          # Диалог экспорта
+│       └── exportToPng.ts            # html-to-image logic
+│
+├── nodes/
+│   ├── ServiceNode.tsx               # Сервис/микросервис
+│   ├── DatabaseNode.tsx              # База данных
+│   ├── QueueNode.tsx                 # Очередь / брокер
+│   ├── ApiGatewayNode.tsx            # API Gateway
+│   ├── FrontendNode.tsx              # Frontend / Client
+│   ├── StorageNode.tsx               # Storage (S3, CDN)
+│   ├── ExternalNode.tsx              # External Service
+│   ├── AuthNode.tsx                  # Auth Provider
+│   ├── CacheNode.tsx                 # Cache (Redis)
+│   └── index.ts                      # Реестр нод
+│
+├── store/
+│   ├── useGraphStore.ts              # Zustand store (nodes, edges, selection)
+│   ├── useHistoryStore.ts            # Undo/Redo (опционально)
+│   └── useUIStore.ts                 # Состояние UI (панели, тема)
+│
+├── lib/
+│   ├── autoLayout.ts                 # dagre layout engine
+│   ├── exportUtils.ts                # Утилиты экспорта
+│   ├── createNode.ts                 # Фабрика создания нод
+│   └── serialize.ts                  # Сохранение/загрузка (JSON)
+│
+├── types/
+│   ├── nodes.ts                      # Типы нод
+│   ├── edges.ts                      # Типы соединений
+│   └── store.ts                      # Типы store
+│
+└── styles/
+    ├── index.css                     # Tailwind + глобальные стили
+    └── nodes.css                     # Стили кастомных нод
+```
+
+### 2.3. Data Flow
+
+```
+1. User drags "Service" from Palette → Canvas
+   │
+   ▼
+2. onDrop handler → createNode(type='service', position)
+   │
+   ▼
+3. Zustand: addNode(newNode) → React Flow re-renders
+   │
+   ▼
+4. ServiceNode.tsx рендерит блок с иконкой и именем
+   │
+   ▼
+5. User кликает на ноду → PropertiesPanel открывается
+   │
+   ▼
+6. User редактирует имя, описание → Zustand: updateNode(id, data)
+   │
+   ▼
+7. User нажимает "Arrange" → dagre вычисляет layout
+   │
+   ▼
+8. Zustand: setNodes(newPositions) → все ноды перемещаются
+```
+
+### 2.4. Технические решения
+
+| Аспект | Решение | Обоснование |
+|--------|---------|-------------|
+| **Canvas** | @xyflow/react (React Flow v12) | Зрелый, TypeScript-native, кастомные ноды, edge routing |
+| **Auto-layout** | dagre | Стандарт для directed graphs, интеграция с React Flow |
+| **State** | Zustand | Лёгкий, TypeScript-friendly, middleware (immer для history) |
+| **Стили** | Tailwind CSS | Быстрая разработка, consistent design |
+| **Иконки** | Lucide React | Красивые, open-source, ~500 иконок |
+| **Export PNG** | html-to-image | Сериализует DOM в canvas → PNG |
+| **Export SVG** | Native React Flow SVG | React Flow уже рисует в SVG — экспортируем как есть |
+| **Persistence** | localStorage | MVP — без сервера, YAGNI |
+| **Undo/Redo** | Zustand + immer patches | Патч-ориентированный подход, эффективно |
+| **Deploy** | Vercel (SPA) | Бесплатно, fast CDN, serverless API для future |
+
+---
+
+## 3. Визуальный дизайн
+
+### 3.1. Типы нод и их визуал
+
+Каждая нода — прямоугольник с закруглёнными углами (12px), иконкой слева, названием и цветовой coding:
+
+```
+┌──────────────────────┐
+│  ⚙️  User Service     │  ← Service (cyan)
+│  Port: 3001          │
+│  Status: Active      │
+└──────────────────────┘
+
+┌──────────────────────┐
+│  🗄️  PostgreSQL       │  ← Database (violet)
+│  Host: pg.internal    │
+└──────────────────────┘
+
+┌──────────────────────┐
+│  📨  RabbitMQ         │  ← Queue (orange)
+│  Queue: tasks         │
+└──────────────────────┘
+```
+
+### 3.2. Цветовая схема (dark theme)
+
+| Тип ноды | Цвет обводки | Фон (rgba) |
+|----------|-------------|------------|
+| Service | #22d3ee (cyan-400) | rgba(8, 51, 68, 0.4) |
+| Database | #a78bfa (violet-400) | rgba(76, 29, 149, 0.4) |
+| Queue | #fb923c (orange-400) | rgba(251, 146, 60, 0.15) |
+| API Gateway | #34d399 (emerald-400) | rgba(6, 78, 59, 0.4) |
+| Frontend | #fbbf24 (amber-400) | rgba(120, 53, 15, 0.3) |
+| Storage | #60a5fa (blue-400) | rgba(30, 58, 138, 0.4) |
+| External | #94a3b8 (slate-400) | rgba(30, 41, 59, 0.5) |
+| Auth | #fb7185 (rose-400) | rgba(136, 19, 55, 0.4) |
+| Cache | #f472b6 (pink-400) | rgba(131, 24, 67, 0.4) |
+
+### 3.3. Layout приложения
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│  [Struct]                                              [Export] [⋮]  │ ← Toolbar
+├────────┬───────────────────────────────────────────────┬─────────────┤
+│        │                                               │             │
+│  Palette│             Canvas (React Flow)               │ Properties  │
+│         │                                               │  Panel      │
+│  ☐ Srv  │      ┌──────┐    ┌──────┐                   │             │
+│  ☐ DB   │      │Srvice│───>│  DB  │                   │  Name: ___  │
+│  ☐ Queue│      └──────┘    └──────┘                   │  Desc: ___  │
+│  ☐ GW   │              ┌──────┐                        │  Color: ☐   │
+│  ☐ Front│              │Queue │                        │             │
+│  ☐ Stor │              └──────┘                        │             │
+│  ☐ Ext  │                                               │             │
+│  ☐ Auth │                                               │             │
+│  ☐ Cache│                                               │             │
+│         │                                               │             │
+├────────┴───────────────────────────────────────────────┴─────────────┤
+│  Zoom: [-] [100%] [+]  |  Auto Layout  |  Nodes: 3  Edges: 1       │ ← Status bar
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 4. Детальный план реализации (Multi-Phase)
+
+### Phase 0: Foundation (сегодня)
+
+#### Task 0.1: Инициализация проекта
+
+```bash
+mkdir -p ~/projects/struct && cd ~/projects/struct
+pnpm create vite . --template react-ts
+pnpm install
+```
+
+#### Task 0.2: Установка зависимостей
+
+```bash
+pnpm add @xyflow/react dagre @types/dagre zustand lucide-react html-to-image clsx tailwind-merge
+pnpm add -D tailwindcss @tailwindcss/vite postcss autoprefixer
+pnpm add -D vitest @testing-library/react @testing-library/jest-dom jsdom
+```
+
+#### Task 0.3: Настройка Tailwind + базовый layout
+
+```bash
+# tailwind.config.js
+# index.css с @tailwind directives
+# App.tsx с тремя колонками: Palette | Canvas | Properties
+```
+
+#### Task 0.4: Git + GitHub
+
+```bash
+git init
+git add . && git commit -m "chore: initial scaffold"
+# Создать remote на GitHub и запушть
+```
+
+**Критерий завершения Phase 0:** `pnpm dev` показывает трёхколоночный layout с placeholder.
+
+---
+
+### Phase 1: Core Canvas (3-4 дня)
+
+#### Task 1.1: Типы нод
+
+Файл: `src/types/nodes.ts`
+
+```typescript
+export type NodeType =
+  | 'service' | 'database' | 'queue' | 'api-gateway'
+  | 'frontend' | 'storage' | 'external' | 'auth' | 'cache';
+
+export interface StructNodeData {
+  label: string;
+  description?: string;
+  type: NodeType;
+  icon?: string;
+  ports?: Record<string, string>;
+}
+```
+
+#### Task 1.2: Определения нод
+
+Файл: `src/components/Palette/nodeDefinitions.ts`
+
+```typescript
+export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
+  service: {
+    type: 'service',
+    label: 'Service',
+    icon: 'Server',
+    color: '#22d3ee',
+    defaultLabel: 'New Service',
+    defaultDescription: '',
+    ports: { input: true, output: true },
+  },
+  database: {
+    type: 'database',
+    label: 'Database',
+    icon: 'Database',
+    color: '#a78bfa',
+    defaultLabel: 'New Database',
+    ports: { input: true },
+  },
+  // ... для каждого типа
+};
+```
+
+#### Task 1.3: Кастомные ноды React Flow
+
+Создать файл для каждого типа ноды в `src/nodes/`. Каждая нода — React-компонент:
+
+```tsx
+// ServiceNode.tsx
+const ServiceNode = ({ data }: NodeProps<StructNodeData>) => (
+  <div className="struct-node struct-node--service">
+    <Server className="struct-node__icon" />
+    <div className="struct-node__content">
+      <div className="struct-node__label">{data.label}</div>
+      {data.description && (
+        <div className="struct-node__description">{data.description}</div>
+      )}
+    </div>
+    <Handle type="source" position={Position.Right} />
+    <Handle type="target" position={Position.Left} />
+  </div>
+);
+```
+
+#### Task 1.4: Zustand Store
+
+Файлы: `src/store/useGraphStore.ts`, `src/store/useUIStore.ts`
+
+```typescript
+// useGraphStore.ts
+interface GraphState {
+  nodes: Node<StructNodeData>[];
+  edges: Edge[];
+  selectedNodeId: string | null;
+
+  addNode: (type: NodeType, position: XYPosition) => void;
+  updateNode: (id: string, data: Partial<StructNodeData>) => void;
+  removeNode: (id: string) => void;
+  addEdge: (source: string, target: string) => void;
+  removeEdge: (id: string) => void;
+  onNodesChange: OnNodesChange;
+  onEdgesChange: OnEdgesChange;
+  onConnect: OnConnect;
+}
+```
+
+#### Task 1.5: Canvas компонент
+
+Файл: `src/components/Canvas/StructCanvas.tsx`
+
+```tsx
+const StructCanvas = () => {
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect } = useGraphStore();
+
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={edges}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      onConnect={onConnect}
+      nodeTypes={nodeTypes}  // реестр кастомных нод
+      fitView
+      colorMode="dark"
+    >
+      <Background color="#1e293b" gap={20} />
+      <Controls />
+      <MiniMap />
+    </ReactFlow>
+  );
+};
+```
+
+#### Task 1.6: Palette (drag-and-drop)
+
+Файл: `src/components/Palette/Palette.tsx`
+
+Реализовать drag-and-drop из палитры на canvas через HTML5 Drag API. При drop:
+1. Определить тип по dataTransfer
+2. Вычислить позицию на canvas (screen → flow coordinates)
+3. Вызвать `addNode(type, position)`
+
+#### Task 1.7: Properties Panel
+
+Файл: `src/components/Properties/PropertiesPanel.tsx`
+
+При клике на ноду — показывает форму редактирования:
+- name (text input)
+- description (textarea)
+- color (color picker или predefined)
+
+#### Task 1.8: Auto-Layout
+
+Файл: `src/lib/autoLayout.ts`
+
+```typescript
+import dagre from 'dagre';
+
+export function autoLayout(
+  nodes: Node[],
+  edges: Edge[],
+  direction: 'LR' | 'TB' = 'LR'
+): Node[] {
+  const g = new dagre.graphlib.Graph();
+  g.setDefaultEdgeLabel(() => ({}));
+  g.setGraph({ rankdir: direction, nodesep: 50, ranksep: 80 });
+
+  nodes.forEach(n => g.setNode(n.id, { width: 200, height: 80 }));
+  edges.forEach(e => g.setEdge(e.source, e.target));
+
+  dagre.layout(g);
+
+  return nodes.map(n => ({
+    ...n,
+    position: {
+      x: g.node(n.id).x - 100,
+      y: g.node(n.id).y - 40,
+    },
+  }));
+}
+```
+
+#### Task 1.9: Экспорт в PNG
+
+Файл: `src/components/Export/exportToPng.ts`
+
+```typescript
+import { toPng } from 'html-to-image';
+
+export async function exportToPng(element: HTMLElement): Promise<void> {
+  const dataUrl = await toPng(element, {
+    backgroundColor: '#020617',
+    pixelRatio: 2,
+  });
+  const link = document.createElement('a');
+  link.download = 'struct-diagram.png';
+  link.href = dataUrl;
+  link.click();
+}
+```
+
+**Критерий завершения Phase 1:**
+- Можно создать диаграмму: перетащить блоки, соединить стрелками
+- Auto-layout работает
+- Экспорт в PNG работает
+- Тёмная тема
+
+---
+
+### Phase 2: Polish & DX (2-3 дня)
+
+- **Undo/Redo** через Zustand + immer (или простой стек состояний)
+- **Сохранение в localStorage** (автосохранение при изменениях)
+- **Клавиатурные шорткаты** (Delete, Ctrl+Z, Ctrl+C/V, Ctrl+A)
+- **Context menu** на правый клик (Copy, Delete, Duplicate)
+- **Snap to grid** — компоненты прилипают к сетке
+- **Групповой drag** (выделение нескольких нод + move)
+- **Edge labels** — подписи на стрелках
+
+---
+
+### Phase 3: Templates & Sharing (3-4 дня)
+
+- **Галлерея шаблонов:** загружаемые presets (Microservices, CQRS, Hexagonal Architecture)
+- **Векторный экспорт SVG** (экспорт React Flow как SVG)
+- **Share by link** (сохранить JSON в URL hash или pastebin-like API)
+- **Cloud provider icons** (AWS, GCP, Azure — через simple-icons или custom SVGs)
+
+---
+
+### Phase 4: Community & Premium (future)
+
+- **Real-time collaboration** через Yjs + WebSocket (Vercel Edge Functions)
+- **Auth** (NextAuth / Clerk)
+- **Комментарии** на диаграммах
+- **Templates marketplace** (community templates)
+- **Dark / Light theme переключатель**
+
+---
+
+## 5. Non-Functional Requirements
+
+### 5.1. Performance
+
+- **100+ нод** без заметных лагов (React Flow оптимизирован)
+- Auto-layout < 100ms для 50 нод (dagre работает за O(n))
+- Экспорт PNG < 2 секунд
+- Bundle size < 500KB (gzip)
+
+### 5.2. Browser Support
+
+- Chromium-based Chrome, Edge, Brave
+- Firefox последних 2 версий
+- Safari последних 2 версий
+
+### 5.3. Accessibility (базовая)
+
+- Все элементы достижимы через Tab
+- ARIA labels на кнопках
+- Фокус-стили для клавиатурной навигации
+
+---
+
+## 6. Тестирование
+
+| Уровень | Инструмент | Что тестируем |
+|---------|-----------|---------------|
+| Unit | Vitest | Store (addNode, updateNode), autoLayout, exportUtils |
+| Component | Vitest + @testing-library/react | Кастомные ноды, Palette, PropertiesPanel |
+| E2E | Playwright | Full flow: drag → connect → layout → export |
+
+---
+
+## 7. Pipeline (GitHub Actions)
+
+```yaml
+# .github/workflows/ci.yml
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+      - run: pnpm install
+      - run: pnpm test
+      - run: pnpm build
+```
+
+Vercel автоматически деплоит при пуше в main.
+
+---
+
+## 8. LinkedIn / Resume Impact
+
+Как презентовать этот проект:
+
+### LinkedIn Project Section
+
+```
+🛠 Struct — System Design Diagramming Tool
+• Built an interactive canvas for creating software architecture diagrams
+• Custom React Flow nodes with 9 component types (Service, DB, Queue, etc.)
+• One-click auto-layout using dagre graph algorithm
+• Dark-themed professional UI with Tailwind CSS
+• Export to PNG/SVG, localStorage persistence
+• Tech: React, TypeScript, Zustand, dagre, Vercel
+🔗 github.com/[yourname]/struct
+🎬 struct.design (demo)
+```
+
+### Skills, которые подтверждает проект:
+
+- React + TypeScript (deep)
+- System Design (знание паттернов и их визуализация)
+- Graph Algorithms (dagre, directed graphs)
+- UI/UX Design
+- Full-stack JavaScript (от инициации до деплоя)
+
+---
+
+## 9. График
+
+| Phase | Длительность | Результат |
+|-------|-------------|-----------|
+| Phase 0 | 1 день | Проект настроен, первый коммит |
+| Phase 1 | 3-4 дня | MVP: можно создавать диаграммы |
+| Phase 2 | 2-3 дня | Polish: undo/redo, save, shortcuts |
+| Phase 3 | 3-4 дня | Templates, SVG export, sharing |
+| **Total** | **~10-12 дней** | **Production-ready продукт** |
+
+---
+
+*Struct — design your architecture, one block at a time.*
