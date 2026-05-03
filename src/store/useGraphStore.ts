@@ -14,13 +14,29 @@ import { NODE_DEFINITIONS } from "../components/Palette/nodeDefinitions";
 
 const STORAGE_KEY = "struct-graph";
 
+function deduplicateNodes(
+  nodes: Node<StructNodeData>[],
+): Node<StructNodeData>[] {
+  const seen = new Map<string, Node<StructNodeData>>();
+  for (const node of nodes) {
+    // Keep the LAST occurrence of each ID
+    seen.set(node.id, node);
+  }
+  return Array.from(seen.values());
+}
+
 function loadFromStorage(): {
   nodes: Node<StructNodeData>[];
   edges: Edge[];
 } | null {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : null;
+    if (!saved) return null;
+    const data = JSON.parse(saved);
+    if (data.nodes) {
+      data.nodes = deduplicateNodes(data.nodes);
+    }
+    return data;
   } catch {
     return null;
   }

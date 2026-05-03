@@ -1,12 +1,18 @@
-import { create } from 'zustand';
+import { create } from "zustand";
+import type { Node, Edge } from "@xyflow/react";
+
+interface HistoryEntry {
+  nodes: Node[];
+  edges: Edge[];
+}
 
 interface HistoryState {
-  past: { nodes: any[]; edges: any[] }[];
-  future: { nodes: any[]; edges: any[] }[];
+  past: HistoryEntry[];
+  future: HistoryEntry[];
 
-  pushState: (nodes: any[], edges: any[]) => void;
-  undo: () => { nodes: any[]; edges: any[] } | null;
-  redo: () => { nodes: any[]; edges: any[] } | null;
+  pushState: (nodes: Node[], edges: Edge[]) => void;
+  undo: () => HistoryEntry | null;
+  redo: () => HistoryEntry | null;
   canUndo: () => boolean;
   canRedo: () => boolean;
 }
@@ -21,7 +27,10 @@ export const useHistoryStore = create<HistoryState>((set, get) => ({
     set((state) => ({
       past: [
         ...state.past.slice(-MAX_HISTORY + 1),
-        { nodes: JSON.parse(JSON.stringify(nodes)), edges: JSON.parse(JSON.stringify(edges)) },
+        {
+          nodes: JSON.parse(JSON.stringify(nodes)),
+          edges: JSON.parse(JSON.stringify(edges)),
+        },
       ],
       future: [],
     }));

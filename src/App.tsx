@@ -5,6 +5,8 @@ import PropertiesPanel from "./components/Properties/PropertiesPanel";
 import Toolbar from "./components/Toolbar/Toolbar";
 import { useGraphStore } from "./store/useGraphStore";
 import { useHistoryStore } from "./store/useHistoryStore";
+import type { Node, Edge } from "@xyflow/react";
+import type { StructNodeData } from "./types/nodes";
 
 function App() {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -19,8 +21,8 @@ function App() {
       const state = history.undo();
       if (state) {
         useGraphStore.setState({
-          nodes: state.nodes as any,
-          edges: state.edges as any,
+          nodes: state.nodes as Node<StructNodeData>[],
+          edges: state.edges as Edge[],
         });
       }
     }
@@ -31,8 +33,8 @@ function App() {
       const state = history.redo();
       if (state) {
         useGraphStore.setState({
-          nodes: state.nodes as any,
-          edges: state.edges as any,
+          nodes: state.nodes as Node<StructNodeData>[],
+          edges: state.edges as Edge[],
         });
       }
     }
@@ -41,8 +43,8 @@ function App() {
       const state = history.redo();
       if (state) {
         useGraphStore.setState({
-          nodes: state.nodes as any,
-          edges: state.edges as any,
+          nodes: state.nodes as Node<StructNodeData>[],
+          edges: state.edges as Edge[],
         });
       }
     }

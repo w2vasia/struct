@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
-import { useGraphStore } from '../../store/useGraphStore';
+import { useEffect, useRef } from "react";
+import { useGraphStore } from "../../store/useGraphStore";
+import type { NodeType } from "../../types/nodes";
 
 interface ContextMenuProps {
   x: number;
@@ -8,7 +9,12 @@ interface ContextMenuProps {
   onClose: () => void;
 }
 
-export default function ContextMenu({ x, y, nodeId, onClose }: ContextMenuProps) {
+export default function ContextMenu({
+  x,
+  y,
+  nodeId,
+  onClose,
+}: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -19,16 +25,16 @@ export default function ContextMenu({ x, y, nodeId, onClose }: ContextMenuProps)
     };
 
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         onClose();
       }
     };
 
-    document.addEventListener('mousedown', handleClick);
-    document.addEventListener('keydown', handleEscape);
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleEscape);
     return () => {
-      document.removeEventListener('mousedown', handleClick);
-      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleEscape);
     };
   }, [onClose]);
 
@@ -40,7 +46,7 @@ export default function ContextMenu({ x, y, nodeId, onClose }: ContextMenuProps)
         x: node.position.x + 50,
         y: node.position.y + 50,
       };
-      addNode(node.data.type as any, pos);
+      addNode(node.data.type as NodeType, pos);
     }
     onClose();
   };

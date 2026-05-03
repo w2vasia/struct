@@ -3,6 +3,13 @@ import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { StructNodeData } from "../types/nodes";
 import { NODE_DEFINITIONS } from "../components/Palette/nodeDefinitions";
 
+const handleStyle = {
+  width: 12,
+  height: 12,
+  border: "2px solid #0f172a",
+  transition: "transform 0.15s",
+};
+
 function ExternalNode({ data, selected }: NodeProps<Node<StructNodeData>>) {
   const def = NODE_DEFINITIONS[data.type];
 
@@ -15,18 +22,16 @@ function ExternalNode({ data, selected }: NodeProps<Node<StructNodeData>>) {
       style={{
         borderColor: def?.color ?? "#22d3ee",
         background: def?.fillColor ?? "rgba(8, 51, 68, 0.4)",
-        backdropFilter: "blur(8px)",
       }}
     >
       {def?.ports?.input && (
         <Handle
           type="target"
           position={Position.Left}
+          isConnectable={true}
           style={{
-            width: 10,
-            height: 10,
+            ...handleStyle,
             background: def?.color ?? "#22d3ee",
-            border: "2px solid #0f172a",
           }}
         />
       )}
@@ -43,11 +48,10 @@ function ExternalNode({ data, selected }: NodeProps<Node<StructNodeData>>) {
         <Handle
           type="source"
           position={Position.Right}
+          isConnectable={true}
           style={{
-            width: 10,
-            height: 10,
+            ...handleStyle,
             background: def?.color ?? "#22d3ee",
-            border: "2px solid #0f172a",
           }}
         />
       )}

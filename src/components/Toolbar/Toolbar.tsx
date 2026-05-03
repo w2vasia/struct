@@ -2,6 +2,8 @@ import { useCallback, useState } from "react";
 import { useGraphStore } from "../../store/useGraphStore";
 import { autoLayout } from "../../lib/autoLayout";
 import { exportToPng, exportToSvg } from "../Export/exportToPng";
+import type { StructNodeData } from "../../types/nodes";
+import type { Node } from "@xyflow/react";
 
 export default function Toolbar({
   reactFlowEl,
@@ -13,7 +15,7 @@ export default function Toolbar({
 
   const handleLayout = () => {
     const laidOut = autoLayout(nodes, edges);
-    setNodes(laidOut as any);
+    setNodes(laidOut as Node<StructNodeData>[]);
   };
 
   const handleExportPng = async () => {

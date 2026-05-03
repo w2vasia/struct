@@ -6,6 +6,7 @@ import {
   MiniMap,
   type ReactFlowInstance,
   SelectionMode,
+  type ConnectionLineType,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useGraphStore } from "../../store/useGraphStore";
@@ -115,6 +116,9 @@ export default function StructCanvas() {
         deleteKeyCode="Delete"
         snapToGrid
         snapGrid={[20, 20]}
+        connectOnClick={true}
+        connectionLineStyle={{ stroke: "#22d3ee", strokeWidth: 2 }}
+        connectionLineType={"smoothstep" as ConnectionLineType}
       >
         <Background color="#1e293b" gap={20} size={1} />
         <Controls
