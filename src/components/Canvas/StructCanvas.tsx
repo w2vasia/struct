@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type DragEvent } from 'react';
+import { useCallback, useRef, useState, type DragEvent } from "react";
 import {
   ReactFlow,
   Background,
@@ -6,30 +6,43 @@ import {
   MiniMap,
   type ReactFlowInstance,
   SelectionMode,
-} from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
-import { useGraphStore } from '../../store/useGraphStore';
-import { nodeTypes } from '../../nodes';
-import type { NodeType } from '../../types/nodes';
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+import { useGraphStore } from "../../store/useGraphStore";
+import { nodeTypes } from "../../nodes";
+import type { NodeType } from "../../types/nodes";
+import ContextMenu from "./ContextMenu";
 
 export default function StructCanvas() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    nodeId: string;
+  } | null>(null);
   const {
-    nodes, edges,
-    onNodesChange, onEdgesChange, onConnect,
-    addNode, selectNode,
+    nodes,
+    edges,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    addNode,
+    selectNode,
+    selectEdge,
   } = useGraphStore();
 
   const onDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
+    event.dataTransfer.dropEffect = "move";
   }, []);
 
   const onDrop = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
       event.preventDefault();
-      const type = event.dataTransfer.getData('application/reactflow') as NodeType;
+      const type = event.dataTransfer.getData(
+        "application/reactflow",
+      ) as NodeType;
       if (!type || !rfInstance) return;
 
       const position = rfInstance.screenToFlowPosition({
@@ -39,22 +52,47 @@ export default function StructCanvas() {
 
       addNode(type, position);
     },
-    [rfInstance, addNode]
+    [rfInstance, addNode],
   );
 
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: { id: string }) => {
       selectNode(node.id);
     },
-    [selectNode]
+    [selectNode],
+  );
+
+  const onEdgeClick = useCallback(
+    (_: React.MouseEvent, edge: { id: string }) => {
+      selectEdge(edge.id);
+    },
+    [selectEdge],
+  );
+
+  const onNodeContextMenu = useCallback(
+    (event: React.MouseEvent, node: { id: string }) => {
+      event.preventDefault();
+      selectNode(node.id);
+      setContextMenu({ x: event.clientX, y: event.clientY, nodeId: node.id });
+    },
+    [selectNode],
   );
 
   const onPaneClick = useCallback(() => {
     selectNode(null);
+    setContextMenu(null);
   }, [selectNode]);
 
   return (
     <div ref={reactFlowWrapper} className="w-full h-full">
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          nodeId={contextMenu.nodeId}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -65,6 +103,8 @@ export default function StructCanvas() {
         onDrop={onDrop}
         onDragOver={onDragOver}
         onNodeClick={onNodeClick}
+        onEdgeClick={onEdgeClick}
+        onNodeContextMenu={onNodeContextMenu}
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         selectionMode={SelectionMode.Partial}
@@ -83,8 +123,8 @@ export default function StructCanvas() {
         />
         <MiniMap
           className="!border-[#334155]"
-          style={{ background: '#0f172a' }}
-          nodeColor={() => '#22d3ee'}
+          style={{ background: "#0f172a" }}
+          nodeColor={() => "#22d3ee"}
           maskColor="rgba(2, 6, 23, 0.7)"
         />
       </ReactFlow>

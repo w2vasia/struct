@@ -12,18 +12,45 @@ import {
 import type { StructNodeData, NodeType } from "../types/nodes";
 import { NODE_DEFINITIONS } from "../components/Palette/nodeDefinitions";
 
+const STORAGE_KEY = "struct-graph";
+
+function loadFromStorage(): {
+  nodes: Node<StructNodeData>[];
+  edges: Edge[];
+} | null {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveToStorage(nodes: Node<StructNodeData>[], edges: Edge[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes, edges }));
+  } catch {
+    // ignore
+  }
+}
+
+const initialStorage = loadFromStorage();
+
 interface GraphState {
   nodes: Node<StructNodeData>[];
   edges: Edge[];
   selectedNodeId: string | null;
+  selectedEdgeId: string | null;
 
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: (connection: Connection) => void;
   addNode: (type: NodeType, position: XYPosition) => void;
   updateNode: (id: string, data: Partial<StructNodeData>) => void;
+  updateEdgeLabel: (id: string, label: string) => void;
   removeSelected: () => void;
   selectNode: (id: string | null) => void;
+  selectEdge: (id: string | null) => void;
   getNodesAndEdges: () => { nodes: Node[]; edges: Edge[] };
   setNodes: (nodes: Node<StructNodeData>[]) => void;
   setEdges: (edges: Edge[]) => void;
@@ -31,85 +58,106 @@ interface GraphState {
 
 let nodeIdCounter = 0;
 
-export const useGraphStore = create<GraphState>((set, get) => ({
-  nodes: [],
-  edges: [],
-  selectedNodeId: null,
-
-  onNodesChange: (changes) => {
-    set({
-      nodes: applyNodeChanges(changes, get().nodes) as Node<StructNodeData>[],
-    });
-  },
-
-  onEdgesChange: (changes) => {
-    set({ edges: applyEdgeChanges(changes, get().edges) });
-  },
-
-  onConnect: (connection: Connection) => {
-    const edge: Edge = {
-      id: `e-${connection.source}-${connection.target}`,
-      source: connection.source!,
-      target: connection.target!,
-      sourceHandle: connection.sourceHandle ?? undefined,
-      targetHandle: connection.targetHandle ?? undefined,
-      type: "smoothstep",
-      animated: false,
-      style: { stroke: "#475569", strokeWidth: 2 },
-    };
-    set({ edges: [...get().edges, edge] });
-  },
-
-  addNode: (type: NodeType, position: XYPosition) => {
-    const def = NODE_DEFINITIONS[type];
-    const id = `node-${++nodeIdCounter}`;
-    const node: Node<StructNodeData> = {
-      id,
-      type,
-      position,
-      data: {
-        label: def.defaultLabel,
-        type,
-        ports: def.ports,
-      },
-    };
-    set({ nodes: [...get().nodes, node] });
-  },
-
-  updateNode: (id: string, data: Partial<StructNodeData>) => {
-    set({
-      nodes: get().nodes.map((n) =>
-        n.id === id ? { ...n, data: { ...n.data, ...data } } : n,
-      ),
-    });
-  },
-
-  removeSelected: () => {
-    const { nodes, edges, selectedNodeId } = get();
-    if (!selectedNodeId) return;
-    set({
-      nodes: nodes.filter((n) => n.id !== selectedNodeId),
-      edges: edges.filter(
-        (e) => e.source !== selectedNodeId && e.target !== selectedNodeId,
-      ),
-      selectedNodeId: null,
-    });
-  },
-
-  selectNode: (id: string | null) => {
-    set({ selectedNodeId: id });
-  },
-
-  getNodesAndEdges: () => {
+export const useGraphStore = create<GraphState>((set, get) => {
+  const wrappedSet: typeof set = (partial) => {
+    set(partial);
     const { nodes, edges } = get();
-    return { nodes, edges };
-  },
+    saveToStorage(nodes, edges);
+  };
 
-  setNodes: (nodes: Node<StructNodeData>[]) => {
-    set({ nodes });
-  },
+  return {
+    nodes: initialStorage?.nodes ?? [],
+    edges: initialStorage?.edges ?? [],
+    selectedNodeId: null,
+    selectedEdgeId: null,
 
-  setEdges: (edges: Edge[]) => {
-    set({ edges });
-  },
-}));
+    onNodesChange: (changes) => {
+      wrappedSet({
+        nodes: applyNodeChanges(changes, get().nodes) as Node<StructNodeData>[],
+      });
+    },
+
+    onEdgesChange: (changes) => {
+      wrappedSet({ edges: applyEdgeChanges(changes, get().edges) });
+    },
+
+    onConnect: (connection: Connection) => {
+      const edge: Edge = {
+        id: `e-${connection.source}-${connection.target}`,
+        source: connection.source!,
+        target: connection.target!,
+        sourceHandle: connection.sourceHandle ?? undefined,
+        targetHandle: connection.targetHandle ?? undefined,
+        type: "smoothstep",
+        animated: false,
+        style: { stroke: "#475569", strokeWidth: 2 },
+      };
+      wrappedSet({ edges: [...get().edges, edge] });
+    },
+
+    addNode: (type: NodeType, position: XYPosition) => {
+      const def = NODE_DEFINITIONS[type];
+      const id = `node-${++nodeIdCounter}`;
+      const node: Node<StructNodeData> = {
+        id,
+        type,
+        position,
+        data: {
+          label: def.defaultLabel,
+          type,
+          ports: def.ports,
+        },
+      };
+      wrappedSet({ nodes: [...get().nodes, node] });
+    },
+
+    updateNode: (id: string, data: Partial<StructNodeData>) => {
+      wrappedSet({
+        nodes: get().nodes.map((n) =>
+          n.id === id ? { ...n, data: { ...n.data, ...data } } : n,
+        ),
+      });
+    },
+
+    removeSelected: () => {
+      const { nodes, edges, selectedNodeId } = get();
+      if (!selectedNodeId) return;
+      wrappedSet({
+        nodes: nodes.filter((n) => n.id !== selectedNodeId),
+        edges: edges.filter(
+          (e) => e.source !== selectedNodeId && e.target !== selectedNodeId,
+        ),
+        selectedNodeId: null,
+      });
+    },
+
+    updateEdgeLabel: (id: string, label: string) => {
+      wrappedSet({
+        edges: get().edges.map((e) =>
+          e.id === id ? { ...e, label, data: { ...e.data, label } } : e,
+        ),
+      });
+    },
+
+    selectNode: (id: string | null) => {
+      set({ selectedNodeId: id, selectedEdgeId: null });
+    },
+
+    selectEdge: (id: string | null) => {
+      set({ selectedEdgeId: id, selectedNodeId: null });
+    },
+
+    getNodesAndEdges: () => {
+      const { nodes, edges } = get();
+      return { nodes, edges };
+    },
+
+    setNodes: (nodes: Node<StructNodeData>[]) => {
+      wrappedSet({ nodes });
+    },
+
+    setEdges: (edges: Edge[]) => {
+      wrappedSet({ edges });
+    },
+  };
+});
