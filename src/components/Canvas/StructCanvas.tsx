@@ -11,6 +11,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useGraphStore } from "../../store/useGraphStore";
 import { nodeTypes } from "../../nodes";
+import { edgeTypes } from "../../edges";
 import type { NodeType } from "../../types/nodes";
 import ContextMenu from "./ContextMenu";
 
@@ -108,6 +109,8 @@ export default function StructCanvas() {
         onNodeContextMenu={onNodeContextMenu}
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        defaultEdgeOptions={{ type: "struct" }}
         selectionMode={SelectionMode.Partial}
         selectionOnDrag
         panOnDrag={[1, 2]}

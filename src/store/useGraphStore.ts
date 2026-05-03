@@ -121,8 +121,7 @@ export const useGraphStore = create<GraphState>((set, get) => {
         target: connection.target,
         sourceHandle: connection.sourceHandle ?? undefined,
         targetHandle: connection.targetHandle ?? undefined,
-        type: "smoothstep",
-        animated: false,
+        type: "struct",
         style: { stroke: "#475569", strokeWidth: 2 },
       };
       wrappedSet({ edges: [...get().edges, edge] });
