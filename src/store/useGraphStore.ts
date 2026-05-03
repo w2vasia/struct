@@ -56,7 +56,21 @@ interface GraphState {
   setEdges: (edges: Edge[]) => void;
 }
 
-let nodeIdCounter = 0;
+function getInitialCounter(nodes: Node<StructNodeData>[]): number {
+  const ids = nodes.map((n) => n.id);
+  const maxNum = ids.reduce((max, id) => {
+    const match = id.match(/^node-(\d+)$/);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      return num > max ? num : max;
+    }
+    return max;
+  }, 0);
+  return maxNum;
+}
+
+const initialNodes = initialStorage?.nodes ?? [];
+let nodeIdCounter = getInitialCounter(initialNodes);
 
 export const useGraphStore = create<GraphState>((set, get) => {
   const wrappedSet: typeof set = (partial) => {
@@ -66,7 +80,7 @@ export const useGraphStore = create<GraphState>((set, get) => {
   };
 
   return {
-    nodes: initialStorage?.nodes ?? [],
+    nodes: initialNodes,
     edges: initialStorage?.edges ?? [],
     selectedNodeId: null,
     selectedEdgeId: null,
