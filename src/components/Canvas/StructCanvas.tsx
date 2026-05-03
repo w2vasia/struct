@@ -149,10 +149,10 @@ export default function StructCanvas() {
         <Background color="#1e293b" gap={20} size={1} />
         <Controls
           showInteractive={false}
-          className="!bg-[#0f172a] !border-[#334155] [&_button]:!text-[#94a3b8] [&_button]:!border-[#334155]"
+          className="bg-[#0f172a]! border-[#334155]! [&_button]:text-[#94a3b8]! [&_button]:border-[#334155]!"
         />
         <MiniMap
-          className="!border-[#334155]"
+          className="border-[#334155]!"
           style={{ background: "#0f172a" }}
           nodeColor={() => "#22d3ee"}
           maskColor="rgba(2, 6, 23, 0.7)"

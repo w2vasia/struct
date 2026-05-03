@@ -16,7 +16,7 @@ function FrontendNode({ data, selected }: NodeProps<Node<StructNodeData>>) {
   return (
     <div
       className={`
-        rounded-xl border-2 px-4 py-3 min-w-[180px] transition-all duration-200
+        rounded-xl border-2 px-4 py-3 min-w-45 transition-all duration-200
         ${selected ? "shadow-[0_0_20px_rgba(34,211,238,0.3)] ring-2 ring-cyan-400" : "shadow-none ring-0"}
       `}
       style={{
@@ -40,9 +40,7 @@ function FrontendNode({ data, selected }: NodeProps<Node<StructNodeData>>) {
         <span className="text-sm font-medium text-[#f1f5f9]">{data.label}</span>
       </div>
       {data.description && (
-        <p className="text-xs text-[#94a3b8] mt-1 ml-[26px]">
-          {data.description}
-        </p>
+        <p className="text-xs text-[#94a3b8] mt-1 ml-6.5">{data.description}</p>
       )}
       {def?.ports?.output && (
         <Handle

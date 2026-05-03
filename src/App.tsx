@@ -115,7 +115,7 @@ function App() {
   return (
     <div className="flex h-screen w-screen bg-[#020617] select-none">
       {/* Left: Palette */}
-      <aside className="w-60 border-r border-[#334155] flex flex-col flex-shrink-0">
+      <aside className="w-60 border-r border-[#334155] flex flex-col shrink-0">
         <div className="p-3 border-b border-[#334155]">
           <h1 className="text-lg font-bold text-[#f1f5f9]">Struct</h1>
           <p className="text-xs text-[#94a3b8]">System Design Visualizer</p>
@@ -134,7 +134,7 @@ function App() {
       </div>
 
       {/* Right: Properties */}
-      <aside className="w-72 border-l border-[#334155] flex flex-col flex-shrink-0">
+      <aside className="w-72 border-l border-[#334155] flex flex-col shrink-0">
         <div className="p-3 border-b border-[#334155]">
           <h2 className="text-sm font-semibold text-[#f1f5f9]">Properties</h2>
         </div>
