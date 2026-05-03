@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 import {
   applyNodeChanges,
   applyEdgeChanges,
@@ -7,10 +7,10 @@ import {
   type Connection,
   type Node,
   type Edge,
-  XYPosition,
-} from '@xyflow/react';
-import type { StructNodeData, NodeType } from '../types/nodes';
-import { NODE_DEFINITIONS } from '../components/Palette/nodeDefinitions';
+  type XYPosition,
+} from "@xyflow/react";
+import type { StructNodeData, NodeType } from "../types/nodes";
+import { NODE_DEFINITIONS } from "../components/Palette/nodeDefinitions";
 
 interface GraphState {
   nodes: Node<StructNodeData>[];
@@ -37,7 +37,9 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   selectedNodeId: null,
 
   onNodesChange: (changes) => {
-    set({ nodes: applyNodeChanges(changes, get().nodes) as Node<StructNodeData>[] });
+    set({
+      nodes: applyNodeChanges(changes, get().nodes) as Node<StructNodeData>[],
+    });
   },
 
   onEdgesChange: (changes) => {
@@ -51,9 +53,9 @@ export const useGraphStore = create<GraphState>((set, get) => ({
       target: connection.target!,
       sourceHandle: connection.sourceHandle ?? undefined,
       targetHandle: connection.targetHandle ?? undefined,
-      type: 'smoothstep',
+      type: "smoothstep",
       animated: false,
-      style: { stroke: '#475569', strokeWidth: 2 },
+      style: { stroke: "#475569", strokeWidth: 2 },
     };
     set({ edges: [...get().edges, edge] });
   },
@@ -77,7 +79,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   updateNode: (id: string, data: Partial<StructNodeData>) => {
     set({
       nodes: get().nodes.map((n) =>
-        n.id === id ? { ...n, data: { ...n.data, ...data } } : n
+        n.id === id ? { ...n, data: { ...n.data, ...data } } : n,
       ),
     });
   },
@@ -88,7 +90,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
     set({
       nodes: nodes.filter((n) => n.id !== selectedNodeId),
       edges: edges.filter(
-        (e) => e.source !== selectedNodeId && e.target !== selectedNodeId
+        (e) => e.source !== selectedNodeId && e.target !== selectedNodeId,
       ),
       selectedNodeId: null,
     });

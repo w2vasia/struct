@@ -1,15 +1,15 @@
-import type { Node } from '@xyflow/react';
+import type { Node } from "@xyflow/react";
 
 export type NodeType =
-  | 'service'
-  | 'database'
-  | 'queue'
-  | 'apiGateway'
-  | 'frontend'
-  | 'storage'
-  | 'external'
-  | 'auth'
-  | 'cache';
+  | "service"
+  | "database"
+  | "queue"
+  | "apiGateway"
+  | "frontend"
+  | "storage"
+  | "external"
+  | "auth"
+  | "cache";
 
 export interface StructNodeData {
   label: string;
@@ -19,6 +19,7 @@ export interface StructNodeData {
     input?: boolean;
     output?: boolean;
   };
+  [key: string]: unknown;
 }
 
 export type StructNode = Node<StructNodeData>;
