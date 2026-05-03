@@ -81,6 +81,23 @@ function App() {
     }
   }, []);
 
+  // Load graph from URL hash (share by link)
+  useEffect(() => {
+    try {
+      const hash = window.location.hash;
+      if (hash && hash.startsWith("#graph=")) {
+        const encoded = hash.slice(7);
+        const decoded = atob(encoded);
+        const data = JSON.parse(decoded);
+        if (data.nodes && data.edges) {
+          useGraphStore.setState({ nodes: data.nodes, edges: data.edges });
+        }
+      }
+    } catch {
+      // ignore invalid hash
+    }
+  }, []);
+
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
